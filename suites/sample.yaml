@@ -1,0 +1,29 @@
+name: sample
+description: Small mixed sanity suite
+scorer: contains          # default scorer for cases
+system: Answer concisely.
+temperature: 0
+# judge_model: openai:gpt-4o-mini   # needed for llm_judge cases
+cases:
+  - id: capital
+    prompt: What is the capital of France? Answer with one word.
+    expected: Paris
+    scorer: exact
+  - id: math
+    prompt: What is 17 * 3?
+    expected: "51"
+  - id: date-format
+    prompt: Write today's date as an ISO date like 2024-01-31. Output only the date.
+    expected: '^\s*\d{4}-\d{2}-\d{2}\s*$'
+    scorer: regex
+  - id: summary
+    prompt: In one sentence, what does photosynthesis do?
+    expected: Plants convert sunlight, water and carbon dioxide into glucose and oxygen.
+    scorer: rouge_l
+  - id: synonyms
+    prompt: Give one synonym for "happy".
+    expected: [joyful, glad, cheerful, content, delighted]
+  - id: haiku
+    prompt: Write a haiku about autumn.
+    scorer: llm_judge
+    rubric: Three lines, roughly 5-7-5 syllables, about autumn.

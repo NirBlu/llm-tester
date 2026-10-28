@@ -1,0 +1,28 @@
+<!doctype html><html><head><meta charset="utf-8"><title>llmtester</title>
+<style>body{font-family:system-ui;margin:2em;max-width:1100px}table{border-collapse:collapse;margin:1em 0}
+td,th{border:1px solid #ccc;padding:4px 8px;font-size:14px;vertical-align:top}th{background:#f3f3f3}
+pre{white-space:pre-wrap;max-width:420px;margin:0}input,select{padding:4px}</style></head><body>
+<h1>llmtester</h1>
+<h2>Run a suite</h2>
+<select id="suite"></select>
+<input id="models" size="60" value="ollama:llama3,xai:grok-3-mini">
+<input id="judge" placeholder="judge model (optional)">
+<button onclick="runIt()">Run</button> <span id="status"></span>
+<h2>Runs</h2><table id="runs"></table>
+<h2 id="dtitle"></h2><div id="detail"></div>
+<script>
+const esc=s=>String(s??'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+function table(rows,cols){return '<table><tr>'+cols.map(c=>`<th>${c}</th>`).join('')+'</tr>'+rows.map(r=>'<tr>'+cols.map(c=>`<td>${c=='output'?'<pre>'+esc(r[c])+'</pre>':esc(r[c])}</td>`).join('')+'</tr>').join('')+'</table>'}
+async function load(){
+ const s=await (await fetch('/api/suites')).json();document.getElementById('suite').innerHTML=s.map(x=>`<option>${x}</option>`).join('');
+ const r=await (await fetch('/api/runs')).json();
+ document.getElementById('runs').innerHTML='<tr><th>id</th><th>suite</th><th>models</th><th>started</th></tr>'+r.map(x=>`<tr><td><a href="#" onclick="show(${x.id})">#${x.id}</a></td><td>${esc(x.suite)}</td><td>${esc(x.models.join(', '))}</td><td>${esc(x.started_at)}</td></tr>`).join('');}
+async function show(id){const r=await (await fetch('/api/runs/'+id)).json();
+ document.getElementById('dtitle').textContent=`Run #${id} — ${r.suite}`;
+ document.getElementById('detail').innerHTML='<h3>Comparison</h3>'+table(r.summary,['model','avg_score','avg_latency_s','avg_tokens_per_s','total_tokens','errors','cases'])+'<h3>Per case</h3>'+table(r.results,['model','case_id','scorer','score','latency_s','tokens_per_s','output','error']);}
+async function runIt(){const st=document.getElementById('status');st.textContent='running…';
+ const body={suite_file:document.getElementById('suite').value,models:document.getElementById('models').value.split(',').map(s=>s.trim()).filter(Boolean),judge_model:document.getElementById('judge').value||null};
+ const res=await fetch('/api/runs',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+ const j=await res.json();st.textContent=res.ok?'done':'error: '+JSON.stringify(j);await load();if(res.ok)show(j.id);}
+load();
+</script></body></html>
